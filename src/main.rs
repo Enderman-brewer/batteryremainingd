@@ -24,6 +24,7 @@ struct BatterySample {
     power: f64,
     energy_remaining: f64,
     status: String,
+    capacity: f64,
 }
 
 struct TrendData {
@@ -224,6 +225,8 @@ fn print_help() {
     eprintln!("  %M    minutes component, zero-padded");
     eprintln!("  %S    seconds component (always 00)");
     eprintln!("  %s    total seconds (always 0)");
+    eprintln!("  %c    battery capacity percentage (0-100)");
+    eprintln!("  %C    battery capacity percentage, zero-padded (3 digits)");
     eprintln!("  %%    literal %%");
     eprintln!();
     eprintln!("Examples:");
@@ -292,10 +295,17 @@ fn read_battery(bat_path: &str) -> Option<BatterySample> {
         _ => energy,
     };
 
+    let capacity = match read_u64(&format!("{}/capacity", bat_path)) {
+        Some(c) => c as f64,
+        None if energy_full > 0 => (energy as f64 / energy_full as f64) * 100.0,
+        None => 0.0,
+    };
+
     Some(BatterySample {
         power: power as f64,
         energy_remaining: energy_remaining as f64,
         status,
+        capacity,
     })
 }
 
@@ -341,7 +351,7 @@ fn power_status(status: &str) -> &str {
     }
 }
 
-fn format_time(total_minutes: f64, status: &str, fmt: &str) -> String {
+fn format_time(total_minutes: f64, status: &str, fmt: &str, capacity: f64) -> String {
     let pstatus = power_status(status);
 
     if total_minutes == f64::INFINITY {
@@ -354,6 +364,8 @@ fn format_time(total_minutes: f64, status: &str, fmt: &str) -> String {
             .replace("%S", "00")
             .replace("%s", "0")
             .replace("%p", pstatus)
+            .replace("%c", &format!("{:.0}", capacity))
+            .replace("%C", &format!("{:03}", capacity as u64))
             .replace("%%", "%");
     }
 
@@ -381,6 +393,8 @@ fn format_time(total_minutes: f64, status: &str, fmt: &str) -> String {
             Some('S') => out.push_str("00"),
             Some('s') => out.push('0'),
             Some('p') => out.push_str(pstatus),
+            Some('c') => out.push_str(&format!("{:.0}", capacity)),
+            Some('C') => out.push_str(&format!("{:03}", capacity as u64)),
             Some('%') => out.push('%'),
             Some(x) => { out.push('%'); out.push(x); }
             None => out.push('%'),
@@ -521,14 +535,14 @@ fn handle_client(mut stream: UnixStream, trend: &Arc<Mutex<TrendData>>) {
 
     let response = match latest {
         Some(ref sample) if sample.status == "Charging" && !include_charging => {
-            format_time(0.0, &sample.status, fmt)
+            format_time(0.0, &sample.status, fmt, sample.capacity)
         }
         Some(ref sample) if sample.status == "Full" && !include_charging => {
-            format_time(0.0, &sample.status, fmt)
+            format_time(0.0, &sample.status, fmt, sample.capacity)
         }
         Some(ref sample) => {
             let mins = compute_minutes_remaining(sample, &trend_data);
-            format_time(mins, &sample.status, fmt)
+            format_time(mins, &sample.status, fmt, sample.capacity)
         }
         None => "no data".to_string(),
     };
