@@ -1,0 +1,16 @@
+[Unit]
+Description=Battery Remaining Daemon
+After=multi-user.target
+
+[Service]
+Type=simple
+User=batteryremaining_duser
+RuntimeDirectory=batteryremainingd
+RuntimeDirectoryMode=0755
+ExecStart=/usr/bin/batteryremainingd --daemon
+TimeoutStopSec=5
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
