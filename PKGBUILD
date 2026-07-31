@@ -1,6 +1,6 @@
 # Maintainer: Zack <zack@example.com>
 pkgname=batteryremainingd
-pkgver=2.1.1
+pkgver=2.2.0
 pkgrel=1
 pkgdesc="Lightweight battery time remaining daemon with Unix socket API"
 arch=('x86_64')
