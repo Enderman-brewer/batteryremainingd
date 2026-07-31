@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 pkgname="batteryremainingd"
-pkgver="2.1.1"
+pkgver="2.2.0"
 tarball="${pkgname}-${pkgver}.tar.gz"
 
 if [ ! -f "$tarball" ]; then
